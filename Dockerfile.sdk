@@ -1,0 +1,11 @@
+# ベースとなるSDKイメージ
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+# 1. ツールをグローバルにインストール
+RUN dotnet tool install --global dotnet-ef --version 8.0.11
+
+# 2. ツールが保存されるパスを環境変数に追加（これでフルパス指定が不要）
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+# 作業ディレクトリの設定
+WORKDIR /src

@@ -1,0 +1,47 @@
+services:
+
+  sdk:
+    build:
+      context: .
+      dockerfile: Dockerfile.sdk
+    volumes:
+      - .:/src
+    environment:
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+    tty: true
+
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+    depends_on:
+      db: 
+        condition: service_healthy
+    volumes:
+      # - .:/src  # ← 開発中に「コンテナ内でビルドし直したい」場合以外は不要
+      - ~/.aspnet/https:/root/.aspnet/https:ro
+      - ./dp-keys:/root/.aspnet/DataProtection-Keys
+
+  # データベース
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+volumes:
+  postgres_data:

@@ -1,0 +1,115 @@
+@page "/admin/edit-question/{Id:long}" 
+@using QuizGame.Models
+@using QuizGame.Services
+@inject IQuizService QuizService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer 
+
+<div class="container mt-5">
+    <div class="card shadow-lg border-primary">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">問題を修正（ID: @Id）</h3>
+        </div>
+        <div class="card-body">
+            @if (editingQuestion == null)
+            {
+                <div class="text-center py-5">読み込み中...</div>
+            }
+            else
+            {
+                <EditForm Model="editingQuestion" OnValidSubmit="HandleSubmit" FormName="EditQuestionForm">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">問題文</label>
+                        <textarea @bind="editingQuestion.Content" class="form-control" rows="3" placeholder="問題文を入力..." required></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold mb-0">選択肢</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddChoiceField">
+                                <span class="bi bi-plus-circle"></span> 選択肢を追加
+                            </button>
+                        </div>
+                        <p class="text-muted small">正解の項目にチェックを入れてください。</p>
+                        
+                        @for (int i = 0; i < editingQuestion.Choices.Count; i++)
+                        {
+                            var index = i;
+                            var choice = editingQuestion.Choices[index];
+                            <div class="input-group mb-2">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0" type="checkbox" @bind="choice.IsCorrect" title="正解にする">
+                                </div>
+                                <input type="text" class="form-control" @bind="choice.Content" placeholder="選択肢を入力..." required>
+                                <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveChoice(index)" title="削除">
+                                    <span class="bi bi-trash"></span>
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between border-top pt-3 mt-4">
+                        <button type="button" class="btn btn-secondary" @onclick='() => NavigationManager.NavigateTo("/admin/questions")'>
+                            キャンセル
+                        </button>
+                        <button type="submit" class="btn btn-primary px-5">
+                            <span class="bi bi-save"></span> 変更を保存
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public long Id { get; set; } // URLパラメータ（ID）を受け取る
+
+    private Question? editingQuestion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // ▼ 画面起動時にDBから既存データを読み込む
+        editingQuestion = await QuizService.GetQuestionByIdAsync(Id);
+        
+        if (editingQuestion == null)
+        {
+            // IDが見つからない場合は一覧に戻すなど（本来はエラー画面が良いが簡易的に）
+            NavigationManager.NavigateTo("/admin/questions");
+        }
+    }
+
+    private void AddChoiceField()
+    {
+        editingQuestion?.Choices.Add(new Choice { Content = "", IsCorrect = false });
+    }
+
+    private void RemoveChoice(int index)
+    {
+        if (editingQuestion?.Choices.Count > 1)
+        {
+            editingQuestion.Choices.RemoveAt(index);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (editingQuestion == null) return;
+
+        // バリデーション：正解が少なくとも1つあるか
+        if (!editingQuestion.Choices.Any(c => c.IsCorrect))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "少なくとも1つの選択肢を「正解」にしてください。");
+            return;
+        }
+
+        // ▼ 更新ロジックを呼び出し
+        await QuizService.UpdateQuestionAsync(editingQuestion);
+        
+        // 修正したら管理一覧画面に戻る
+        NavigationManager.NavigateTo("/admin/questions"); 
+    }
+}

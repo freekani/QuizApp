@@ -1,0 +1,73 @@
+@page "/quizzes"
+@using QuizGame.Models
+@using QuizGame.Services
+@inject IQuizService QuizService
+@rendermode InteractiveServer
+
+<h1>クイズ管理（データ入力）</h1>
+
+@* 登録フォーム *@
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">新しい問題を追加</h5>
+        <div class="mb-3">
+            <label class="form-label">問題文:</label>
+            <input class="form-control" @bind="newQuestion.Content" />
+        </div>
+        @* ※Answerは別のテーブル（Answers）になりましたが、
+           一旦簡易的に動かすために、ここでは「Type」などを仮で入れる例にします *@
+        <div class="mb-3">
+            <label class="form-label">タイプ:</label>
+            <input class="form-control" @bind="newQuestion.Type" placeholder="multiple_choice" />
+        </div>
+        <button class="btn btn-primary" @onclick="HandleAddQuiz">登録する</button>
+    </div>
+</div>
+
+<h3>登録済みの問題一覧</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>問題内容</th>
+            <th>タイプ</th>
+            <th>状態</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var q in QuestionsList)
+        {
+            <tr>
+                <td>@q.Id</td>
+                <td>@q.Content</td>
+                <td>@q.Type</td>
+                <td>@(q.IsActive ? "有効" : "無効")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Question> QuestionsList = new();
+    private Question newQuestion = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadQuestions();
+    }
+
+    private async Task LoadQuestions()
+    {
+        QuestionsList = await QuizService.GetQuizzesAsync();
+    }
+
+    private async Task HandleAddQuiz()
+    {
+        if (!string.IsNullOrWhiteSpace(newQuestion.Content))
+        {
+            await QuizService.AddQuizAsync(newQuestion);
+            newQuestion = new Question(); // リセット
+            await LoadQuestions(); // 再読み込み
+        }
+    }
+}

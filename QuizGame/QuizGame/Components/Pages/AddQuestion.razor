@@ -1,0 +1,92 @@
+@page "/add-question"
+@using QuizGame.Models
+@using QuizGame.Services
+@inject IQuizService QuizService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h3>新しい問題を作成</h3>
+        </div>
+        <div class="card-body">
+            @* ▼ 修正：formname を指定する *@
+            <EditForm Model="newQuestion" OnValidSubmit="HandleSubmit" FormName="AddQuestionForm">
+                <DataAnnotationsValidator />
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold">問題文</label>
+                    <textarea @bind="newQuestion.Content" class="form-control" rows="3" placeholder="例：日本の首都は？" required></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">選択肢</label>
+                    @for (int i = 0; i < newQuestion.Choices.Count; i++)
+                    {
+                        var index = i;
+                        var choice = newQuestion.Choices[index];
+                        <div class="input-group mb-2">
+                            <div class="input-group-text">
+                                @* ここ重要：チェックボックスが複数あるので、
+                                   bind が正しく動くように Interactive モードが必須です 
+                                *@
+                                <input class="form-check-input mt-0" type="checkbox" @bind="choice.IsCorrect">
+                            </div>
+                            <input type="text" class="form-control" @bind="choice.Content" placeholder="選択肢を入力">
+                            <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveChoice(index)">
+                                削除
+                            </button>
+                        </div>
+                    }
+                    
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" @onclick="AddChoiceField">
+                        選択肢を追加
+                    </button>
+                </div>
+
+                <div class="d-flex justify-content-between border-top pt-3">
+                    <button type="button" class="btn btn-secondary" @onclick='() => NavigationManager.NavigateTo("/")'>キャンセル</button>
+                    <button type="submit" class="btn btn-success px-5">保存して公開</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Question newQuestion = new();
+
+    protected override void OnInitialized()
+    {
+        // 最初から選択肢を2つ用意しておく
+        AddChoiceField();
+        AddChoiceField();
+    }
+
+    private void AddChoiceField()
+    {
+        newQuestion.Choices.Add(new Choice { Content = "", IsCorrect = false });
+    }
+
+    private void RemoveChoice(int index)
+    {
+        if (newQuestion.Choices.Count > 1)
+        {
+            newQuestion.Choices.RemoveAt(index);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        // バリデーション：正解が少なくとも1つあるか
+        if (!newQuestion.Choices.Any(c => c.IsCorrect))
+        {
+            // 本来はここで警告を出したいですが、まずは簡易的に
+            return;
+        }
+
+        await QuizService.AddQuizAsync(newQuestion);
+        NavigationManager.NavigateTo("/play"); // 登録したらすぐに遊べるように移動
+    }
+}

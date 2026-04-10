@@ -1,0 +1,18 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+@* ▼ 修正ポイント1：Client側にあるLayoutフォルダを指定する *@
+@using QuizGame.Client.Layout
+
+@* ▼ 修正ポイント2：Client側に残っているHome画面なども見つけられるように、AdditionalAssembliesを設定 *@
+<Router AppAssembly="@typeof(Program).Assembly" 
+        AdditionalAssemblies="new[] { typeof(MainLayout).Assembly }">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">申し訳ありません、ページが見つかりませんでした。</p>
+        </LayoutView>
+    </NotFound>
+</Router>

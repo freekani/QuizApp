@@ -1,0 +1,28 @@
+## [.NET 固有の設定]
+# ビルド結果の実行ファイルや一時ファイル（これを共有すると他人のPCで動かなくなります）
+[Bb]in/
+[Oo]bj/
+
+# テスト結果やログ
+TestResults/
+*.log
+
+## [Visual Studio / VS Code の設定]
+# エディタ固有の設定（各自の好みがあるため共有しません）
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+## [Docker 固有の設定]
+# ★最重要★ パスワードが含まれる環境変数ファイルを Git 管理から除外します
+.env
+
+## [OS 固有の設定]
+# Windows のサムネイルキャッシュなど
+Thumbs.db
+desktop.ini
+
+# macOS の設定ファイル
+.DS_Store

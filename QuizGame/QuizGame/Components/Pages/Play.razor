@@ -1,0 +1,112 @@
+@page "/play"
+@using QuizGame.Models
+@using QuizGame.Services
+@inject IQuizService QuizService
+
+<PageTitle>クイズに挑戦！</PageTitle>
+
+<div class="container mt-5">
+    @if (questions == null)
+    {
+        <p><em>読み込み中...</em></p>
+    }
+    else if (!questions.Any())
+    {
+        <div class="alert alert-warning">問題が登録されていません。</div>
+    }
+    else if (isFinished)
+    {
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <h2>結果発表！</h2>
+                <p class="display-4">@score / @questions.Count</p>
+                <button class="btn btn-primary" @onclick="Restart">もう一度遊ぶ</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        var currentQuestion = questions[currentIndex];
+        
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                第 @(currentIndex + 1) 問 (@currentQuestion.Type)
+            </div>
+            <div class="card-body">
+                <h3 class="card-title mb-4">@currentQuestion.Content</h3>
+
+                <div class="d-grid gap-3">
+                    @foreach (var choice in currentQuestion.Choices.OrderBy(c => c.Position ?? 0))
+                    {
+                        <button class="btn btn-outline-secondary btn-lg text-start" 
+                                @onclick="() => HandleAnswer(choice)"
+                                disabled="@isChecking">
+                            @choice.Content
+                        </button>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(feedback))
+                {
+                    <div class="mt-4 alert @(feedback.Contains("正解") ? "alert-success" : "alert-danger")">
+                        @feedback
+                    </div>
+                    <button class="btn btn-dark mt-2" @onclick="NextQuestion">次の問題へ</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Question>? questions;
+    private int currentIndex = 0;
+    private int score = 0;
+    private bool isChecking = false;
+    private string feedback = "";
+    private bool isFinished = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        questions = await QuizService.GetQuizzesAsync();
+    }
+
+    private void HandleAnswer(Choice selectedChoice)
+    {
+        if (isChecking) return;
+        isChecking = true;
+
+        if (selectedChoice.IsCorrect)
+        {
+            feedback = "🎉 正解です！";
+            score++;
+        }
+        else
+        {
+            feedback = "💦 残念、不正解です。";
+        }
+    }
+
+    private void NextQuestion()
+    {
+        feedback = "";
+        isChecking = false;
+
+        if (currentIndex < questions!.Count - 1)
+        {
+            currentIndex++;
+        }
+        else
+        {
+            isFinished = true;
+        }
+    }
+
+    private void Restart()
+    {
+        currentIndex = 0;
+        score = 0;
+        isFinished = false;
+        feedback = "";
+    }
+}
